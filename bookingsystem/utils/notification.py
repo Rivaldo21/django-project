@@ -13,6 +13,7 @@ from dataclasses import dataclass, asdict, field
 
 import firebase_admin._messaging_utils
 from bookingsystem.models import CustomUser, FCMToken, UserNotification
+from booking_system.settings import Path, BASE_DIR, FIREBASE_SERVICE_ACCOUNT_FILE_PATH
 
 BASE_DIR = Path(__file__).resolve().parent.parent
 
@@ -68,12 +69,7 @@ class FCMNotification:
         """Inisialisasi Firebase Admin dengan Path yang benar"""
         if not FCMNotification._is_initialized:
             try:
-                service_account_path = BASE_DIR / "bookingsystem/config/firebase/service-account.json"
-
-                if not service_account_path.exists():
-                    raise FileNotFoundError(f"Firebase credential file not found: {service_account_path}")
-
-                cred = credentials.Certificate(str(service_account_path))
+                cred = credentials.Certificate(FIREBASE_SERVICE_ACCOUNT_FILE_PATH)
                 firebase_admin.initialize_app(cred)
                 FCMNotification._is_initialized = True
                 logging.info("Firebase Admin SDK initialized successfully.")
@@ -92,7 +88,9 @@ class FCMNotification:
             self.multi_push(
                 list(user.fcm_tokens.all().values_list("token", flat=True).distinct())
             )
-            UserNotification.objects.create(user=user, payload=self.payload.to_dict(), fcm_sent_at=datetime.now())
+            UserNotification.objects.create(
+                user=user, payload=self.payload.to_dict(), fcm_sent_at=datetime.now()
+            )
 
     def single_push(self, token: str):
         """Mengirimkan notifikasi ke satu user"""

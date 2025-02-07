@@ -1,0 +1,13 @@
+{
+    "python.defaultInterpreterPath": "${workspaceFolder}/.vscode/venv/bin/python3",
+    "python.terminal.activateEnvironment": true,
+    "terminal.integrated.profiles.osx": {
+        "zsh": {
+            "path": "/bin/zsh",
+            "args": [
+                "-c",
+                "source ~/.zshrc; source ${workspaceFolder}/.vscode/venv/bin/activate; exec /bin/zsh"
+            ]
+        }
+    },
+}
