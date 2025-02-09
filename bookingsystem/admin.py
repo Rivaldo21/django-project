@@ -6,17 +6,35 @@ from .models import CustomUser
 from .models import Purpose
 from .models import ExecutiveMeeting
 from .models import Driver
+from django import forms
 from bookingsystem.models import CustomUser, UserRoles
 from django.contrib.auth import get_user_model
 from .models import Room, Vehicle, Booking, Driver, Departement
 from django.core.exceptions import ValidationError
 User = get_user_model()
 
+
+class CustomUserChangeForm(forms.ModelForm):
+    class Meta:
+        model = CustomUser
+        fields = '__all__'
+
+    def clean_departement(self):
+        departement = self.cleaned_data.get('departement')
+        role = self.cleaned_data.get('role')
+
+        if role != 'driver' and not departement:
+            raise forms.ValidationError("Department required for non-Driver users!")
+
+        return departement
+
 class CustomUserAdmin(UserAdmin):
     add_form = CustomUserCreationForm
     form = CustomUserChangeForm
     model = CustomUser
-    list_display = ['username', 'email', 'first_name', 'last_name', 'is_staff']
+    list_display = ['username', 'email', 'first_name', 'last_name', 'role', 'departement']
+    list_filter = ['role', 'departement']
+    search_fields = ['username', 'email', 'first_name', 'last_name']
 
     fieldsets = (
         (None, {'fields': ('username', 'password')}),
@@ -28,7 +46,7 @@ class CustomUserAdmin(UserAdmin):
     add_fieldsets = (
         (None, {
             'classes': ('wide',),
-            'fields': ('username', 'email', 'first_name', 'last_name', 'role', 'password1', 'password2'),
+            'fields': ('username', 'email', 'first_name', 'last_name', 'role', 'departement', 'password1', 'password2'),
         }),
     )
 
@@ -139,11 +157,12 @@ class ExecutiveMeetingAdmin(admin.ModelAdmin):
 
     filter_horizontal = ('participants_departments', 'participants_users', 'substitute_executive')
 
+    def formfield_for_foreignkey(self, db_field, request, **kwargs):
+        if db_field.name == "requester_name":
+            kwargs["queryset"] = CustomUser.objects.exclude(role=UserRoles.DRIVER.value)
+        return super().formfield_for_foreignkey(db_field, request, **kwargs)
+
     def formfield_for_manytomany(self, db_field, request, **kwargs):
-        """
-        - Menghilangkan User dengan role Driver dari daftar Participants
-        - Mengatur agar Substitute Executive hanya bisa dipilih dari Admin, Department Chief, Director, Executive, atau Staff.
-        """
         if db_field.name == "participants_users":
             kwargs["queryset"] = CustomUser.objects.exclude(role=UserRoles.DRIVER.value)
         elif db_field.name == "substitute_executive":
@@ -167,28 +186,22 @@ class ExecutiveMeetingAdmin(admin.ModelAdmin):
     )
 
     def save_model(self, request, obj, form, change):
-        """
-        - Validasi agar Purpose, Participants (Departement/User), dan Observations wajib diisi sebelum menyimpan.
-        - Jika bukan update (`change=False`), maka simpan terlebih dahulu sebelum ManyToManyField bisa diakses.
-        """
         if not change:
             obj.save()
             form.save_m2m()
 
         errors = {}
 
-        # Gunakan `form.cleaned_data` untuk mendapatkan nilai terbaru dari peserta
         participants_departments = form.cleaned_data.get("participants_departments", [])
-        participants_users = form.cleaned_data.get("participants_users", [])    
+        participants_users = form.cleaned_data.get("participants_users", [])
 
         if not obj.purpose:
-            errors['purpose'] = 'Purpose harus dipilih!'
+            errors['purpose'] = 'Purpose must be selected!'
         if not obj.obs.strip():
-            errors['obs'] = 'Observation/Notes tidak boleh kosong!'
+            errors['obs'] = 'Observation/Notes cannot be empty!'
 
         if errors:
             raise ValidationError(errors)
 
         obj.clean()
         super().save_model(request, obj, form, change)
-

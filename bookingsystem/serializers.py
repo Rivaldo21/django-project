@@ -14,20 +14,17 @@ from .models import UserRoles
 User = get_user_model()
 
 class CustomLoginSerializer(serializers.Serializer):
-    username_or_email = serializers.CharField()
+    username = serializers.CharField()
     password = serializers.CharField(write_only=True)
 
     def validate(self, data):
-        username_or_email = data.get('username_or_email')
+        username = data.get('username')
         password = data.get('password')
 
-        user = (
-            CustomUser.objects.filter(username=username_or_email).first() or
-            CustomUser.objects.filter(email=username_or_email).first()
-        )
+        user = authenticate(username=username, password=password)
 
-        if not user or not user.check_password(password):
-            raise AuthenticationFailed("Invalid username/email or password.")
+        if not user:
+            raise AuthenticationFailed("Invalid username or password.")
 
         if not user.is_active:
             raise AuthenticationFailed("User account is disabled.")
@@ -124,17 +121,19 @@ class PurposeSerializer(serializers.ModelSerializer):
 
 
 class ExecutiveMeetingSerializer(serializers.ModelSerializer):
-    requester_name = UserSerializer(read_only=True)  # Mengubah ID jadi Nama
-    substitute_executive = UserSerializer(read_only=True)  # Menampilkan Nama Pengganti
+    requester_name = UserSerializer(read_only=True)  
+    substitute_executive = UserSerializer(read_only=True)
     participants = DepartementSerializer(many=True, read_only=True)
     
-    # Gunakan PrimaryKeyRelatedField untuk Room & Vehicle
     room = serializers.PrimaryKeyRelatedField(queryset=Room.objects.all(), required=False, allow_null=True)
     vehicle = serializers.PrimaryKeyRelatedField(queryset=Vehicle.objects.all(), required=False, allow_null=True)
 
-    # Field baru untuk format tanggal
     formatted_start_time = serializers.SerializerMethodField()
     formatted_end_time = serializers.SerializerMethodField()
+
+    class Meta:
+        model = ExecutiveMeeting
+        fields = '__all__'
 
     class Meta:
         model = ExecutiveMeeting
@@ -152,14 +151,11 @@ class ExecutiveMeetingSerializer(serializers.ModelSerializer):
         return obj.end_time.strftime('%d-%m-%Y %H:%M') if obj.end_time else None
 
     def validate(self, data):
-        """
-        Validasi agar Participants dan Obs wajib diisi.
-        """
         if not self.instance and not data.get('participants'):
-            raise serializers.ValidationError({"participants": "Participants harus dipilih minimal 1!"})
+            raise serializers.ValidationError({"participants": "Participants must be selected at least 1!"})
 
         if not data.get('obs'):
-            raise serializers.ValidationError({"obs": "Observation/Notes tidak boleh kosong!"})
+            raise serializers.ValidationError({"obs": "Observation/Notes cannot be empty!"})
 
         return data
 
@@ -186,7 +182,6 @@ class BookingSerializer(serializers.ModelSerializer):
         read_only_fields = ['status', 'requester_name']
 
     def validate(self, data):
-        # Validasaun oras
         start_time = data.get('start_time')
         end_time = data.get('end_time')
 
@@ -212,7 +207,6 @@ class BookingSerializer(serializers.ModelSerializer):
         else:
             raise serializers.ValidationError("Invalid resource_type. Must be 'Room' or 'Vehicle'.")
 
-        # Validasaun konflitu booking
         overlapping_bookings = Booking.objects.filter(
             resource_type=resource_type,
             start_time__lt=end_time,

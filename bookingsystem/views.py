@@ -30,30 +30,53 @@ from .serializers import (
     DepartementSerializer,
 )
 
+class UserProfileAPIView(APIView):
+    permission_classes = [IsAuthenticated]
+
+    def get(self, request, *args, **kwargs):
+        user = request.user
+
+        departement_name = user.departement.name if hasattr(user, 'departement') and user.departement else None
+
+        return Response({
+            "user_id": user.id,
+            "username": user.username,
+            "first_name": user.first_name,
+            "last_name": user.last_name,
+            "full_name": f"{user.first_name} {user.last_name}",
+            "email": user.email,
+            "role": user.get_role_display(),
+            "departement": departement_name
+        })
+
 class LoginAPIView(APIView):
     def post(self, request, *args, **kwargs):
-        print(request.data)
         serializer = CustomLoginSerializer(data=request.data)
         serializer.is_valid(raise_exception=True)
         user = serializer.validated_data['user']
 
-        serializer = CustomLoginSerializer(data=request.data)
-        if serializer.is_valid(raise_exception=True):
-            user = serializer.validated_data['user']
-            token, created = Token.objects.get_or_create(user=user)
+        token, created = Token.objects.get_or_create(user=user)
+
+        return Response({
+            "token": token.key
+        })
+
+        departement_name = user.departement.name if hasattr(user, 'departement') and user.departement else None
 
         return Response({
             "token": token.key,
             "user_id": user.id,
             "username": user.username,
+            "first_name": user.first_name,
+            "last_name": user.last_name,
+            "full_name": f"{user.first_name} {user.last_name}",
             "email": user.email,
+            "role": user.get_role_display(),
+            "departement": user.departement.name if user.departement else None
         })
 
 
 class SubstituteExecutiveListView(generics.ListAPIView):
-    """
-    API untuk mengambil daftar Substitute Executive yang bisa dipilih
-    """
     queryset = CustomUser.objects.filter(role__in=[
         UserRoles.ADMIN.value,
         UserRoles.DEPARTMENT_CHIEF.value,
@@ -65,17 +88,11 @@ class SubstituteExecutiveListView(generics.ListAPIView):
     permission_classes = [IsAuthenticated]
 
 class ParticipantsUserListView(generics.ListAPIView):
-    """
-    API untuk mengambil daftar Users yang bisa dipilih sebagai Participants
-    """
-    queryset = CustomUser.objects.exclude(role=UserRoles.DRIVER.value)  # Exclude driver
+    queryset = CustomUser.objects.exclude(role=UserRoles.DRIVER.value)
     serializer_class = ParticipantsUserSerializer
     permission_classes = [IsAuthenticated]
 
 class ParticipantsDepartmentListView(generics.ListAPIView):
-    """
-    API untuk mengambil daftar Departemen yang bisa dipilih sebagai Participants
-    """
     queryset = Departement.objects.all()
     serializer_class = ParticipantsDepartmentSerializer
     permission_classes = [IsAuthenticated]
@@ -93,23 +110,20 @@ class ExecutiveMeetingViewSet(viewsets.ModelViewSet):
     permission_classes = [AllowAny]
 
     def perform_create(self, serializer):
-        """Saat meeting dibuat, admin bisa menambahkan undangan untuk direktur/departemen dan memilih pengganti"""
         meeting = serializer.save(requester_name=self.request.user)
         invited_users = serializer.validated_data.get('invited_users', [])
         substitute_executives = serializer.validated_data.get('substitute_executive', [])
 
-        # Kirim notifikasi ke admin departament yang ditag
         for user in invited_users:
             user.email_user(
-                subject="Undangan Rapat Eksekutif",
-                message=f"Anda diundang ke rapat: {meeting.agenda}\nWaktu: {meeting.start_time} - {meeting.end_time}",
+                subject="Invitation for Executive Meeting",
+                message=f"You are invited to the meeting: {meeting.agenda}\nTime: {meeting.start_time} - {meeting.end_time}",
             )
 
-        # Kirim notifikasi ke pengganti Direktur Executive jika ada
         if substitute_executive:
             substitute_executive.email_user(
-                subject="Anda Ditunjuk sebagai Pengganti Rapat",
-                message=f"Anda ditunjuk sebagai pengganti Direktur Executive dalam rapat: {meeting.agenda}\nWaktu: {meeting.start_time} - {meeting.end_time}",
+                subject="You are Appointed as the Meeting Substitute",
+                message=f"You were appointed as an alternate to the Executive Director at the meeting: {meeting.agenda}\nTime: {meeting.start_time} - {meeting.end_time}",
             )
 
 
@@ -120,7 +134,7 @@ class BookingViewSet(viewsets.ModelViewSet):
     permission_classes = [IsAuthenticated]
 
     def list(self, request, *args, **kwargs):
-        print(f"Token diterima: {request.META.get('HTTP_AUTHORIZATION')}")
+        print(f"Token accepted: {request.META.get('HTTP_AUTHORIZATION')}")
         return super().list(request, *args, **kwargs)
 
     def create(self, request, *args, **kwargs):

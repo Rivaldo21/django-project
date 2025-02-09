@@ -7,6 +7,15 @@ from bookingsystem.enums import UserRoles
 from django.conf import settings
 User = settings.AUTH_USER_MODEL
 
+class Departement(models.Model):
+    name = models.CharField(max_length=100, unique=True)
+
+    def __str__(self):
+        return self.name
+
+    class Meta:
+        abstract = True 
+
 class CustomUser(AbstractUser):
     username = models.CharField(
         max_length=150,
@@ -37,6 +46,34 @@ class CustomUser(AbstractUser):
         null=False
     )
 
+    departement = models.ForeignKey(
+        Departement,  
+        on_delete=models.CASCADE,
+        related_name="users",
+        null=True,
+        blank=True,
+        verbose_name="Department"
+    )
+
+    def clean(self):
+        if self.role != UserRoles.DRIVER.value and not self.departement:
+            raise ValidationError({"departement": "Department required for non-Driver users!"})
+
+    def get_full_name(self):
+        return f"{self.first_name} {self.last_name}".strip()
+
+    def __str__(self):
+        departement_name = self.departement.name if self.departement else "No Department"
+        return f"{self.username} - {self.get_role_display()} - {departement_name}"
+
+    REQUIRED_FIELDS = ['email', 'first_name', 'last_name', 'role', 'departement']
+
+    def get_full_name(self):
+        return f"{self.first_name} {self.last_name}".strip()
+
+    def __str__(self):
+        return f"{self.username} - {self.get_role_display()} - {self.departement.name}"
+
     groups = models.ManyToManyField(
         'auth.Group',
         related_name='customuser_groups',
@@ -47,8 +84,6 @@ class CustomUser(AbstractUser):
         related_name='customuser_permissions',
         blank=True,
     )
-
-    REQUIRED_FIELDS = ['email', 'first_name', 'last_name', 'role']
 
     def get_full_name(self):
         return f"{self.first_name} {self.last_name}".strip()
@@ -213,10 +248,10 @@ class ExecutiveMeeting(models.Model):
         Purpose,
         on_delete=models.SET_NULL,
         null=True,
-        blank=False,  # Wajib diisi
+        blank=False,
         related_name="executive_meetings"
     )
-     # ⬇️ Tambahkan dua ManyToManyField untuk mendukung Hybrid (Departement & Users)
+     
     participants_departments = models.ManyToManyField(
         Departement,
         related_name="meeting_participants",
@@ -238,7 +273,7 @@ class ExecutiveMeeting(models.Model):
     substitute_executive = models.ManyToManyField(
     settings.AUTH_USER_MODEL,
     related_name="substituted_meetings",
-    blank=True,  # Bisa kosong
+    blank=True,
     limit_choices_to={'role__in': [
         UserRoles.ADMIN.value,
         UserRoles.DEPARTMENT_CHIEF.value,
@@ -261,7 +296,7 @@ class ExecutiveMeeting(models.Model):
     )
     start_time = models.DateTimeField()
     end_time = models.DateTimeField()
-    status = models.CharField(max_length=50, choices=[("Pending", "Pending"), ("Completed", "Completed")])
+    status = models.CharField(max_length=50, choices=[("Pending", "Pending"), ("Completed", "Completed"), ("Execute", "Execute"), ("Cancelled", "Cancelled"),])
     obs = models.TextField(null=False, blank=False)
 
     def __str__(self):
@@ -279,5 +314,5 @@ class ExecutiveMeeting(models.Model):
         def clean(self):
             super().clean()
             if not self.participants_departments.exists() and not self.participants_users.exists():
-                raise ValidationError({"participants_users": "Participants harus dipilih minimal 1 (Departement atau User)!"})
+                raise ValidationError({"participants_users": "Participants must be selected at least 1 (Department or User)!"})
     
