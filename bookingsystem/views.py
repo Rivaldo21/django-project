@@ -10,10 +10,12 @@ from rest_framework.decorators import action
 from rest_framework.viewsets import ModelViewSet
 from .models import ExecutiveMeeting
 from rest_framework import serializers
+from rest_framework import generics
 from .serializers import ExecutiveMeetingSerializer
 from rest_framework.permissions import AllowAny, IsAuthenticated
 from rest_framework.authentication import TokenAuthentication
 from .models import Purpose, Room, Vehicle, Booking, Departement, CustomUser
+from .serializers import SubstituteExecutiveSerializer, ParticipantsUserSerializer, ParticipantsDepartmentSerializer
 from .serializers import ExecutiveMeetingSerializer, PurposeSerializer, RoomSerializer, VehicleSerializer, BookingSerializer, DepartementSerializer
 from bookingsystem.enums import UserRoles
 from bookingsystem.utils.notification import (
@@ -46,6 +48,38 @@ class LoginAPIView(APIView):
             "username": user.username,
             "email": user.email,
         })
+
+
+class SubstituteExecutiveListView(generics.ListAPIView):
+    """
+    API untuk mengambil daftar Substitute Executive yang bisa dipilih
+    """
+    queryset = CustomUser.objects.filter(role__in=[
+        UserRoles.ADMIN.value,
+        UserRoles.DEPARTMENT_CHIEF.value,
+        UserRoles.DIRECTOR.value,
+        UserRoles.EXECUTIVE.value,
+        UserRoles.STAFF.value
+    ])
+    serializer_class = SubstituteExecutiveSerializer
+    permission_classes = [IsAuthenticated]
+
+class ParticipantsUserListView(generics.ListAPIView):
+    """
+    API untuk mengambil daftar Users yang bisa dipilih sebagai Participants
+    """
+    queryset = CustomUser.objects.exclude(role=UserRoles.DRIVER.value)  # Exclude driver
+    serializer_class = ParticipantsUserSerializer
+    permission_classes = [IsAuthenticated]
+
+class ParticipantsDepartmentListView(generics.ListAPIView):
+    """
+    API untuk mengambil daftar Departemen yang bisa dipilih sebagai Participants
+    """
+    queryset = Departement.objects.all()
+    serializer_class = ParticipantsDepartmentSerializer
+    permission_classes = [IsAuthenticated]
+
 
 class PurposeViewSet(ModelViewSet):
     queryset = Purpose.objects.all()

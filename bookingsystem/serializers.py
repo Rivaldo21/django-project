@@ -96,6 +96,22 @@ class VehicleSerializer(serializers.ModelSerializer):
         return obj.driver.user.get_full_name() if obj.driver and obj.driver.user else "No Driver Assigned"
 
 
+class SubstituteExecutiveSerializer(serializers.ModelSerializer):
+    class Meta:
+        model = CustomUser
+        fields = ['id', 'username', 'first_name', 'last_name', 'email']
+
+class ParticipantsUserSerializer(serializers.ModelSerializer):
+    class Meta:
+        model = CustomUser
+        fields = ['id', 'username', 'first_name', 'last_name', 'email']
+
+class ParticipantsDepartmentSerializer(serializers.ModelSerializer):
+    class Meta:
+        model = Departement
+        fields = ['id', 'name']
+
+
 class DepartementSerializer(serializers.ModelSerializer):
     class Meta:
         model = Departement

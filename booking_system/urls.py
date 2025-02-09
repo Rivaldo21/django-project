@@ -20,5 +20,6 @@ urlpatterns = [
     path('api/', include(router.urls)),
     path('api/login/', obtain_auth_token, name='api_login'),
     path('api/notifications/', include('bookingsystem.notification.urls'), name='api_notification'),
+    path('', include('bookingsystem.urls')),
     path('', views.dashboard, name='dashboard'),
 ]

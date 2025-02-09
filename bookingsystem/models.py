@@ -220,7 +220,7 @@ class ExecutiveMeeting(models.Model):
     participants_departments = models.ManyToManyField(
         Departement,
         related_name="meeting_participants",
-        blank=True  # Bisa kosong
+        blank=True  
     )
     participants_users = models.ManyToManyField(
         settings.AUTH_USER_MODEL,

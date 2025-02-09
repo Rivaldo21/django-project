@@ -183,8 +183,6 @@ class ExecutiveMeetingAdmin(admin.ModelAdmin):
 
         if not obj.purpose:
             errors['purpose'] = 'Purpose harus dipilih!'
-        if not participants_departments.exists() and not participants_users.exists():
-            errors['participants_users'] = 'Minimal satu peserta (Departement atau User) harus dipilih!'
         if not obj.obs.strip():
             errors['obs'] = 'Observation/Notes tidak boleh kosong!'
 

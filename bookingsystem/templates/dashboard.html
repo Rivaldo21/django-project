@@ -218,15 +218,15 @@
                     </tbody>
                 </table>
 
-            <h2>Executive Meetings</h2>
-                <table>
+                <h2>Executive Meetings</h2>
+                <table class="styled-table">
                     <thead>
                         <tr>
                             <th>Description</th>
                             <th>Requester</th>
                             <th>Location</th>
                             <th>Purpose</th>
-                            <th>Participants</th>
+                            <th>Participants (Dept & Users)</th>
                             <th>Substitute Executive</th>
                             <th>Room</th>
                             <th>Vehicle</th>
@@ -242,22 +242,46 @@
                                 <td>{{ meeting.description }}</td>
                                 <td>{{ meeting.requester_name }}</td>
                                 <td>{{ meeting.location }}</td>
-                                <td>{{ meeting.purpose.name }}</td>
+                                <td>{{ meeting.purpose.name|default:"None" }}</td>
+                
+                                <!-- Participants (Department & Users) -->
                                 <td>
-                                    {% for participant in meeting.participants_departments.all %}
-                                        {{ participant.name }}{% if not forloop.last %}, {% endif %}
-                                    {% endfor %}
-                                    {% for participant in meeting.participants_users.all %}
-                                        {{ participant.username }}{% if not forloop.last %}, {% endif %}
-                                    {% endfor %}
-                                </td>
-                                <td>
-                                    {% for executive in meeting.substitute_executive.all %}
-                                        {{ executive.get_full_name }}{% if not forloop.last %}, {% endif %}
-                                    {% empty %}
-                                        None
-                                    {% endfor %}
+                                    {% with meeting.participants_departments.all as departments %}
+                                    {% with meeting.participants_users.all as users %}
+                                        {% if departments or users %}
+                                            {% if departments %}
+                                                {% for participant in departments %}
+                                                    {{ participant.name }}{% if not forloop.last %}, {% endif %}
+                                                {% endfor %}
+                                            {% endif %}
+                                            
+                                            {% if departments and users %}, {% endif %}
+                                            
+                                            {% if users %}
+                                                {% for user in users %}
+                                                    {{ user.get_full_name }}{% if not forloop.last %}, {% endif %}
+                                                {% endfor %}
+                                            {% endif %}
+                                        {% else %}
+                                            None
+                                        {% endif %}
+                                    {% endwith %}
+                                    {% endwith %}
                                 </td>                                
+                
+                                <!-- Substitute Executive -->
+                                <td>
+                                    {% with meeting.substitute_executive.all as executives %}
+                                        {% if executives %}
+                                            {% for executive in executives %}
+                                                {{ executive.get_full_name }}{% if not forloop.last %}, {% endif %}
+                                            {% endfor %}
+                                        {% else %}
+                                            None
+                                        {% endif %}
+                                    {% endwith %}
+                                </td>
+                
                                 <td>{{ meeting.room.name|default:"-" }}</td>
                                 <td>{{ meeting.vehicle.name|default:"-" }}</td>
                                 <td>{{ meeting.start_time|date:"Y-m-d H:i" }}</td>
@@ -271,7 +295,7 @@
                             </tr>
                         {% endfor %}
                     </tbody>
-                </table>
+                </table>                
 
             <h2>Room Bookings</h2>
             <table>
