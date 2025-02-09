@@ -62,7 +62,7 @@ class ExecutiveMeetingViewSet(viewsets.ModelViewSet):
         """Saat meeting dibuat, admin bisa menambahkan undangan untuk direktur/departemen dan memilih pengganti"""
         meeting = serializer.save(requester_name=self.request.user)
         invited_users = serializer.validated_data.get('invited_users', [])
-        substitute_executive = serializer.validated_data.get('substitute_executive', None)
+        substitute_executives = serializer.validated_data.get('substitute_executive', [])
 
         # Kirim notifikasi ke admin departament yang ditag
         for user in invited_users:

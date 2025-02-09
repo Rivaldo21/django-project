@@ -6,6 +6,7 @@ from .models import CustomUser
 from .models import Purpose
 from .models import ExecutiveMeeting
 from .models import Driver
+from bookingsystem.models import CustomUser, UserRoles
 from django.contrib.auth import get_user_model
 from .models import Room, Vehicle, Booking, Driver, Departement
 from django.core.exceptions import ValidationError
@@ -136,34 +137,60 @@ class ExecutiveMeetingAdmin(admin.ModelAdmin):
     list_filter = ['status']
     search_fields = ['description', 'purpose__name', 'requester_name__username']
 
-    def formfield_for_foreignkey(self, db_field, request, **kwargs):
-        if db_field.name in ["requester_name", "substitute_executive"]:
-            kwargs["queryset"] = CustomUser.objects.exclude(role="driver")
-        return super().formfield_for_foreignkey(db_field, request, **kwargs)
+    filter_horizontal = ('participants_departments', 'participants_users', 'substitute_executive')
+
+    def formfield_for_manytomany(self, db_field, request, **kwargs):
+        """
+        - Menghilangkan User dengan role Driver dari daftar Participants
+        - Mengatur agar Substitute Executive hanya bisa dipilih dari Admin, Department Chief, Director, Executive, atau Staff.
+        """
+        if db_field.name == "participants_users":
+            kwargs["queryset"] = CustomUser.objects.exclude(role=UserRoles.DRIVER.value)
+        elif db_field.name == "substitute_executive":
+            kwargs["queryset"] = CustomUser.objects.filter(role__in=[
+                UserRoles.ADMIN.value,
+                UserRoles.DEPARTMENT_CHIEF.value,
+                UserRoles.DIRECTOR.value,
+                UserRoles.EXECUTIVE.value,
+                UserRoles.STAFF.value
+            ])
+        return super().formfield_for_manytomany(db_field, request, **kwargs)
 
     fieldsets = (
         (None, {
-        'fields': ('description', 'purpose', 'requester_name', 'location', 
-                   'room', 'vehicle', 'start_time', 'end_time', 'status', 'obs', 
-                   'participants', 'substitute_executive')
+            'fields': (
+                'description', 'purpose', 'requester_name', 'location',
+                'room', 'vehicle', 'start_time', 'end_time', 'status', 'obs',
+                'participants_departments', 'participants_users', 'substitute_executive'
+            )
         }),
     )
 
-    filter_horizontal = ('participants',)
-
     def save_model(self, request, obj, form, change):
-        if not change:  
-            obj.save()  
-            form.save_m2m()  
-        else:
-            super().save_model(request, obj, form, change)
+        """
+        - Validasi agar Purpose, Participants (Departement/User), dan Observations wajib diisi sebelum menyimpan.
+        - Jika bukan update (`change=False`), maka simpan terlebih dahulu sebelum ManyToManyField bisa diakses.
+        """
+        if not change:
+            obj.save()
+            form.save_m2m()
+
+        errors = {}
+
+        # Gunakan `form.cleaned_data` untuk mendapatkan nilai terbaru dari peserta
+        participants_departments = form.cleaned_data.get("participants_departments", [])
+        participants_users = form.cleaned_data.get("participants_users", [])    
 
         if not obj.purpose:
-            form.add_error('purpose', 'Purpose harus dipilih!')
-        if not obj.participants.exists():
-            form.add_error('participants', 'Participants harus dipilih minimal 1!')
+            errors['purpose'] = 'Purpose harus dipilih!'
+        if not participants_departments.exists() and not participants_users.exists():
+            errors['participants_users'] = 'Minimal satu peserta (Departement atau User) harus dipilih!'
         if not obj.obs.strip():
-            form.add_error('obs', 'Observation/Notes tidak boleh kosong!')
+            errors['obs'] = 'Observation/Notes tidak boleh kosong!'
+
+        if errors:
+            raise ValidationError(errors)
 
         obj.clean()
         super().save_model(request, obj, form, change)
+

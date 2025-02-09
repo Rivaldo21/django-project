@@ -216,16 +216,36 @@ class ExecutiveMeeting(models.Model):
         blank=False,  # Wajib diisi
         related_name="executive_meetings"
     )
-    participants = models.ManyToManyField(
+     # ⬇️ Tambahkan dua ManyToManyField untuk mendukung Hybrid (Departement & Users)
+    participants_departments = models.ManyToManyField(
         Departement,
         related_name="meeting_participants",
-        blank=False  # Participants wajib diisi
+        blank=True  # Bisa kosong
     )
-    substitute_executive = models.ForeignKey(
+    participants_users = models.ManyToManyField(
         settings.AUTH_USER_MODEL,
-        on_delete=models.SET_NULL,
-        null=True, blank=True,
-        related_name="substituted_meetings"
+        related_name="meeting_participant_users",
+        blank=True,
+        limit_choices_to={'role__in': [
+            UserRoles.ADMIN.value,
+            UserRoles.DEPARTMENT_CHIEF.value,
+            UserRoles.DIRECTOR.value,
+            UserRoles.EXECUTIVE.value,
+            UserRoles.STAFF.value
+        ]}
+    )
+
+    substitute_executive = models.ManyToManyField(
+    settings.AUTH_USER_MODEL,
+    related_name="substituted_meetings",
+    blank=True,  # Bisa kosong
+    limit_choices_to={'role__in': [
+        UserRoles.ADMIN.value,
+        UserRoles.DEPARTMENT_CHIEF.value,
+        UserRoles.DIRECTOR.value,
+        UserRoles.EXECUTIVE.value,
+        UserRoles.STAFF.value
+      ]}
     )
     room = models.ForeignKey(
         'Room',
@@ -256,5 +276,8 @@ class ExecutiveMeeting(models.Model):
         if not self.purpose:
             raise ValidationError({"purpose": "Purpose harus dipilih!"})    
 
-        if not self.participants.exists():
-            raise ValidationError({"participants": "Minimal satu peserta harus dipilih."})    
+        def clean(self):
+            super().clean()
+            if not self.participants_departments.exists() and not self.participants_users.exists():
+                raise ValidationError({"participants_users": "Participants harus dipilih minimal 1 (Departement atau User)!"})
+    

@@ -244,19 +244,20 @@
                                 <td>{{ meeting.location }}</td>
                                 <td>{{ meeting.purpose.name }}</td>
                                 <td>
-                                    {% for participant in meeting.participants.all %}
+                                    {% for participant in meeting.participants_departments.all %}
                                         {{ participant.name }}{% if not forloop.last %}, {% endif %}
-                                    {% empty %}
-                                        No Participants
+                                    {% endfor %}
+                                    {% for participant in meeting.participants_users.all %}
+                                        {{ participant.username }}{% if not forloop.last %}, {% endif %}
                                     {% endfor %}
                                 </td>
                                 <td>
-                                    {% if meeting.substitute_executive %}
-                                        {{ meeting.substitute_executive }}
-                                    {% else %}
+                                    {% for executive in meeting.substitute_executive.all %}
+                                        {{ executive.get_full_name }}{% if not forloop.last %}, {% endif %}
+                                    {% empty %}
                                         None
-                                    {% endif %}
-                                </td>
+                                    {% endfor %}
+                                </td>                                
                                 <td>{{ meeting.room.name|default:"-" }}</td>
                                 <td>{{ meeting.vehicle.name|default:"-" }}</td>
                                 <td>{{ meeting.start_time|date:"Y-m-d H:i" }}</td>
