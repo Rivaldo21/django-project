@@ -111,7 +111,7 @@ class ExecutiveMeetingViewSet(viewsets.ModelViewSet):
 
     def perform_create(self, serializer):
         meeting = serializer.save(requester_name=self.request.user)
-        invited_users = serializer.validated_data.get('invited_users', [])
+        invited_users = serializer.validated_data.get('participants_users', [])
         substitute_executives = serializer.validated_data.get('substitute_executive', [])
 
         for user in invited_users:
@@ -120,10 +120,10 @@ class ExecutiveMeetingViewSet(viewsets.ModelViewSet):
                 message=f"You are invited to the meeting: {meeting.agenda}\nTime: {meeting.start_time} - {meeting.end_time}",
             )
 
-        if substitute_executive:
-            substitute_executive.email_user(
+        for executive in substitute_executives:
+            executive.email_user(
                 subject="You are Appointed as the Meeting Substitute",
-                message=f"You were appointed as an alternate to the Executive Director at the meeting: {meeting.agenda}\nTime: {meeting.start_time} - {meeting.end_time}",
+                message=f"You were appointed as a substitute in the meeting: {meeting.description}\nTime: {meeting.start_time} - {meeting.end_time}",
             )
 
 

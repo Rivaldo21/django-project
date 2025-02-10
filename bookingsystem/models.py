@@ -306,10 +306,7 @@ class ExecutiveMeeting(models.Model):
         super().clean()
 
         if not self.pk: 
-            return
-
-        if not self.purpose:
-            raise ValidationError({"purpose": "Purpose harus dipilih!"})    
+            return   
 
         def clean(self):
             super().clean()
