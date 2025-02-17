@@ -110,14 +110,24 @@ class ExecutiveMeetingViewSet(viewsets.ModelViewSet):
     permission_classes = [AllowAny]
 
     def perform_create(self, serializer):
+        """
+        Pastikan `purpose` tidak kosong dan valid sebelum menyimpan data.
+        """
+        validated_data = serializer.validated_data
+
+        # 🔥 Pastikan purpose ada sebelum menyimpan
+        if "purpose" not in validated_data or validated_data["purpose"] is None:
+            raise serializers.ValidationError({"purpose": "Purpose is required."})
+
         meeting = serializer.save(requester_name=self.request.user)
-        invited_users = serializer.validated_data.get('participants_users', [])
-        substitute_executives = serializer.validated_data.get('substitute_executive', [])
+
+        invited_users = validated_data.get("participants_users", [])
+        substitute_executives = validated_data.get("substitute_executive", [])
 
         for user in invited_users:
             user.email_user(
                 subject="Invitation for Executive Meeting",
-                message=f"You are invited to the meeting: {meeting.agenda}\nTime: {meeting.start_time} - {meeting.end_time}",
+                message=f"You are invited to the meeting: {meeting.description}\nTime: {meeting.start_time} - {meeting.end_time}",
             )
 
         for executive in substitute_executives:

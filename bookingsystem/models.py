@@ -50,7 +50,7 @@ class CustomUser(AbstractUser):
         Departement,  
         on_delete=models.CASCADE,
         related_name="users",
-        null=True,
+        null=False,
         blank=True,
         verbose_name="Department"
     )

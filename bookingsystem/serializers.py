@@ -121,20 +121,20 @@ class PurposeSerializer(serializers.ModelSerializer):
 
 
 class ExecutiveMeetingSerializer(serializers.ModelSerializer):
-    requester_name = serializers.PrimaryKeyRelatedField(
-        queryset=CustomUser.objects.exclude(role=UserRoles.DRIVER.value)
-    )
-    purpose = serializers.PrimaryKeyRelatedField(
-        queryset=Purpose.objects.all()
-    )
+    requester_name = serializers.StringRelatedField()  
+    purpose = serializers.PrimaryKeyRelatedField(queryset=Purpose.objects.all())  # ID Tetap
+    purpose_name = serializers.SerializerMethodField()  # 🔥 Tambahkan ini
+
     participants_departments = serializers.PrimaryKeyRelatedField(
         queryset=Departement.objects.all(), many=True, required=False
     )
     participants_users = serializers.PrimaryKeyRelatedField(
-        queryset=CustomUser.objects.all(), many=True, required=False
+        queryset=CustomUser.objects.filter(role=UserRoles.STAFF.value), many=True, required=False
     )
     substitute_executive = serializers.PrimaryKeyRelatedField(
-        queryset=CustomUser.objects.all(), many=True, required=False
+        queryset=CustomUser.objects.filter(role__in=[UserRoles.DIRECTOR.value, UserRoles.DEPARTMENT_CHIEF.value]),
+        many=True,
+        required=False
     )
 
     room = serializers.PrimaryKeyRelatedField(
@@ -144,18 +144,21 @@ class ExecutiveMeetingSerializer(serializers.ModelSerializer):
         queryset=Vehicle.objects.all(), required=False, allow_null=True
     )
 
-
     formatted_start_time = serializers.SerializerMethodField()
     formatted_end_time = serializers.SerializerMethodField()
 
     class Meta:
         model = ExecutiveMeeting
         fields = [
-            'id', 'description', 'requester_name', 'location', 'purpose','participants_departments',
-            'participants_users', 'substitute_executive', 'room', 'vehicle',
-            'start_time', 'end_time', 'formatted_start_time', 'formatted_end_time',
-            'status', 'obs'
+            'id', 'description', 'requester_name', 'location', 'purpose', 'purpose_name',
+            'participants_departments', 'participants_users', 'substitute_executive',
+            'room', 'vehicle', 'start_time', 'end_time',
+            'formatted_start_time', 'formatted_end_time', 'status', 'obs'
         ]
+
+    def get_purpose_name(self, obj):
+        """ Mengambil Nama dari Purpose """
+        return obj.purpose.name if obj.purpose else None  # 🔥 Perbaikan utama
 
     def get_formatted_start_time(self, obj):
         return obj.start_time.strftime('%d-%m-%Y %H:%M') if obj.start_time else None
@@ -168,13 +171,10 @@ class ExecutiveMeetingSerializer(serializers.ModelSerializer):
             raise serializers.ValidationError({"purpose": "Purpose is required."})
         if not data.get('obs'):
             raise serializers.ValidationError({"obs": "Observation/Notes cannot be empty!"})
-
         return data
 
     def create(self, validated_data):
-        """
-        Override create() untuk ManyToManyField
-        """
+        """ Override create() untuk ManyToManyField """
         participants_departments = validated_data.pop('participants_departments', [])
         participants_users = validated_data.pop('participants_users', [])
         substitute_executive = validated_data.pop('substitute_executive', [])
@@ -188,9 +188,7 @@ class ExecutiveMeetingSerializer(serializers.ModelSerializer):
         return meeting
 
     def update(self, instance, validated_data):
-        """
-        Override update() untuk ManyToManyField
-        """
+        """ Override update() untuk ManyToManyField """
         participants_departments = validated_data.pop('participants_departments', [])
         participants_users = validated_data.pop('participants_users', [])
         substitute_executive = validated_data.pop('substitute_executive', [])
@@ -201,7 +199,7 @@ class ExecutiveMeetingSerializer(serializers.ModelSerializer):
         instance.participants_users.set(participants_users)
         instance.substitute_executive.set(substitute_executive)
 
-        return instance    
+        return instance
 
 
 class BookingSerializer(serializers.ModelSerializer):

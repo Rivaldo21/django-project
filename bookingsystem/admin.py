@@ -24,7 +24,7 @@ class CustomUserChangeForm(forms.ModelForm):
         role = self.cleaned_data.get('role')
 
         if role != 'driver' and not departement:
-            raise forms.ValidationError("Department required for non-Driver users!")
+            raise forms.ValidationError("Departement wajib diisi untuk user non-Driver!")
 
         return departement
 
@@ -163,15 +163,16 @@ class ExecutiveMeetingAdmin(admin.ModelAdmin):
         return super().formfield_for_foreignkey(db_field, request, **kwargs)
 
     def formfield_for_manytomany(self, db_field, request, **kwargs):
+        """
+        🔥 Memfilter daftar user di Django Admin
+        - `participants_users` → hanya Staff
+        - `substitute_executive` → hanya Director & Department Chief
+        """
         if db_field.name == "participants_users":
-            kwargs["queryset"] = CustomUser.objects.exclude(role=UserRoles.DRIVER.value)
+            kwargs["queryset"] = CustomUser.objects.filter(role=UserRoles.STAFF.value)  # 🔥 Hanya role Staff
         elif db_field.name == "substitute_executive":
             kwargs["queryset"] = CustomUser.objects.filter(role__in=[
-                UserRoles.ADMIN.value,
-                UserRoles.DEPARTMENT_CHIEF.value,
-                UserRoles.DIRECTOR.value,
-                UserRoles.EXECUTIVE.value,
-                UserRoles.STAFF.value
+                UserRoles.DIRECTOR.value, UserRoles.DEPARTMENT_CHIEF.value  # 🔥 Hanya Director & Department Chief
             ])
         return super().formfield_for_manytomany(db_field, request, **kwargs)
 
@@ -205,3 +206,4 @@ class ExecutiveMeetingAdmin(admin.ModelAdmin):
 
         obj.clean()
         super().save_model(request, obj, form, change)
+
