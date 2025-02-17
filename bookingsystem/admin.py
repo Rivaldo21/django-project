@@ -169,10 +169,10 @@ class ExecutiveMeetingAdmin(admin.ModelAdmin):
         - `substitute_executive` → hanya Director & Department Chief
         """
         if db_field.name == "participants_users":
-            kwargs["queryset"] = CustomUser.objects.filter(role=UserRoles.STAFF.value)  # 🔥 Hanya role Staff
+            kwargs["queryset"] = CustomUser.objects.filter(role=UserRoles.STAFF.value)  
         elif db_field.name == "substitute_executive":
             kwargs["queryset"] = CustomUser.objects.filter(role__in=[
-                UserRoles.DIRECTOR.value, UserRoles.DEPARTMENT_CHIEF.value  # 🔥 Hanya Director & Department Chief
+                UserRoles.DIRECTOR.value, UserRoles.DEPARTMENT_CHIEF.value 
             ])
         return super().formfield_for_manytomany(db_field, request, **kwargs)
 

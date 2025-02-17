@@ -218,82 +218,84 @@
                     </tbody>
                 </table>
 
+                <!-- Executive Meetings -->
+
                 <h2>Executive Meetings</h2>
-<table class="styled-table">
-    <thead>
-        <tr>
-            <th>Description</th>
-            <th>Requester</th>
-            <th>Location</th>
-            <th>Purpose</th>
-            <th>Participants (Departments)</th>
-            <th>Participants (Users)</th>
-            <th>Substitute Executive</th>
-            <th>Room</th>
-            <th>Vehicle</th>
-            <th>Start Time</th>
-            <th>End Time</th>
-            <th>Status</th>
-            <th>Observations</th>
-        </tr>
-    </thead>
-    <tbody>
-        {% for meeting in executive_meetings %}
-            <tr>
-                <td>{{ meeting.description }}</td>
-                <td>{{ meeting.requester_name }}</td>
-                <td>{{ meeting.location }}</td>
-                <td>{{ meeting.purpose.name|default:"None" }}</td>
+                    <table class="styled-table">
+                        <thead>
+                            <tr>
+                                <th>Description</th>
+                                <th>Requester</th>
+                                <th>Location</th>
+                                <th>Purpose</th>
+                                <th>Participants (Departments)</th>
+                                <th>Participants (Users)</th>
+                                <th>Substitute Executive</th>
+                                <th>Room</th>
+                                <th>Vehicle</th>
+                                <th>Start Time</th>
+                                <th>End Time</th>
+                                <th>Status</th>
+                                <th>Observations</th>
+                            </tr>
+                        </thead>
+                        <tbody>
+                            {% for meeting in executive_meetings %}
+                                <tr>
+                                    <td>{{ meeting.description }}</td>
+                                    <td>{{ meeting.requester_name }}</td>
+                                    <td>{{ meeting.location }}</td>
+                                    <td>{{ meeting.purpose.name|default:"None" }}</td>
 
-                <!-- Participants (Departments) -->
-                <td>
-                    {% if meeting.participants_departments.all %}
-                        {% for department in meeting.participants_departments.all %}
-                            {{ department.name }}{% if not forloop.last %}, {% endif %}
-                        {% endfor %}
-                    {% else %}
-                        None
-                    {% endif %}
-                </td>
+                                    <!-- Participants (Departments) -->
+                                    <td>
+                                        {% if meeting.participants_departments.all %}
+                                            {% for department in meeting.participants_departments.all %}
+                                                {{ department.name }}{% if not forloop.last %}, {% endif %}
+                                            {% endfor %}
+                                        {% else %}
+                                            None
+                                        {% endif %}
+                                    </td>
 
-                <!-- Participants (Users) -->
-                <td>
-                    {% if meeting.participants_users.all %}
-                        {% for user in meeting.participants_users.all %}
-                            {{ user.get_full_name }}{% if not forloop.last %}, {% endif %}
-                        {% endfor %}
-                    {% else %}
-                        None
-                    {% endif %}
-                </td>
+                                    <!-- Participants (Users) -->
+                                    <td>
+                                        {% if meeting.participants_users.all %}
+                                            {% for user in meeting.participants_users.all %}
+                                                {{ user.get_full_name }}{% if not forloop.last %}, {% endif %}
+                                            {% endfor %}
+                                        {% else %}
+                                            None
+                                        {% endif %}
+                                    </td>
 
-                <!-- Substitute Executive -->
-                <td>
-                    {% if meeting.substitute_executive.all %}
-                        {% for executive in meeting.substitute_executive.all %}
-                            {{ executive.get_full_name }}{% if not forloop.last %}, {% endif %}
-                        {% endfor %}
-                    {% else %}
-                        None
-                    {% endif %}
-                </td>
+                                    <!-- Substitute Executive -->
+                                    <td>
+                                        {% if meeting.substitute_executive.all %}
+                                            {% for executive in meeting.substitute_executive.all %}
+                                                {{ executive.get_full_name }}{% if not forloop.last %}, {% endif %}
+                                            {% endfor %}
+                                        {% else %}
+                                            None
+                                        {% endif %}
+                                    </td>
 
-                <td>{{ meeting.room.name|default:"None" }}</td>
-                <td>{{ meeting.vehicle.name|default:"None" }}</td>
-                <td>{{ meeting.start_time|date:"Y-m-d H:i" }}</td>
-                <td>{{ meeting.end_time|date:"Y-m-d H:i" }}</td>
-                <td>{{ meeting.status }}</td>
-                <td>{{ meeting.obs|default:"-" }}</td>
-            </tr>
-        {% empty %}
-            <tr>
-                <td colspan="13" class="no-data">No executive meetings available.</td>
-            </tr>
-        {% endfor %}
-    </tbody>
-</table>                
+                                    <td>{{ meeting.room.name|default:"None" }}</td>
+                                    <td>{{ meeting.vehicle.name|default:"None" }}</td>
+                                    <td>{{ meeting.start_time|date:"Y-m-d H:i" }}</td>
+                                    <td>{{ meeting.end_time|date:"Y-m-d H:i" }}</td>
+                                    <td>{{ meeting.status }}</td>
+                                    <td>{{ meeting.obs|default:"-" }}</td>
+                                </tr>
+                            {% empty %}
+                                <tr>
+                                    <td colspan="13" class="no-data">No executive meetings available.</td>
+                                </tr>
+                            {% endfor %}
+                        </tbody>
+                    </table>                
 
-            <h2>Room Bookings</h2>
+        <h2>Room Bookings</h2>
             <table>
                 <thead>
                     <tr>

@@ -115,7 +115,6 @@ class ExecutiveMeetingViewSet(viewsets.ModelViewSet):
         """
         validated_data = serializer.validated_data
 
-        # 🔥 Pastikan purpose ada sebelum menyimpan
         if "purpose" not in validated_data or validated_data["purpose"] is None:
             raise serializers.ValidationError({"purpose": "Purpose is required."})
 

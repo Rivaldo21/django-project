@@ -122,8 +122,8 @@ class PurposeSerializer(serializers.ModelSerializer):
 
 class ExecutiveMeetingSerializer(serializers.ModelSerializer):
     requester_name = serializers.StringRelatedField()  
-    purpose = serializers.PrimaryKeyRelatedField(queryset=Purpose.objects.all())  # ID Tetap
-    purpose_name = serializers.SerializerMethodField()  # 🔥 Tambahkan ini
+    purpose = serializers.PrimaryKeyRelatedField(queryset=Purpose.objects.all())
+    purpose_name = serializers.SerializerMethodField()  
 
     participants_departments = serializers.PrimaryKeyRelatedField(
         queryset=Departement.objects.all(), many=True, required=False
@@ -158,7 +158,7 @@ class ExecutiveMeetingSerializer(serializers.ModelSerializer):
 
     def get_purpose_name(self, obj):
         """ Mengambil Nama dari Purpose """
-        return obj.purpose.name if obj.purpose else None  # 🔥 Perbaikan utama
+        return obj.purpose.name if obj.purpose else None 
 
     def get_formatted_start_time(self, obj):
         return obj.start_time.strftime('%d-%m-%Y %H:%M') if obj.start_time else None
@@ -209,6 +209,7 @@ class BookingSerializer(serializers.ModelSerializer):
     departement_details = DepartementSerializer(source='departement', read_only=True)
     formatted_start_time = serializers.SerializerMethodField()
     formatted_end_time = serializers.SerializerMethodField()
+    requester_name_details = serializers.SerializerMethodField()
 
     class Meta:
         model = Booking
@@ -217,11 +218,15 @@ class BookingSerializer(serializers.ModelSerializer):
             'room', 'room_details',
             'vehicle', 'vehicle_details',
             'departement', 'departement_details',
-            'requester_name', 'start_time', 'end_time',
+            'requester_name','requester_name_details','start_time', 'end_time',
             'formatted_start_time', 'formatted_end_time',
             'destination_address', 'description', 'status',
         ]
         read_only_fields = ['status', 'requester_name']
+
+    def get_requester_name_details(self, obj):
+        return obj.requester_name.get_full_name() if obj.requester_name else None
+
 
     def validate(self, data):
         start_time = data.get('start_time')
