@@ -3,6 +3,8 @@ from django.contrib.auth.models import AbstractUser, BaseUserManager
 from django.core.validators import MinLengthValidator
 from django.conf import settings
 from django.core.exceptions import ValidationError
+from django.utils.timezone import now
+from django.db.models import Q
 from bookingsystem.enums import UserRoles
 from django.conf import settings
 User = settings.AUTH_USER_MODEL
@@ -190,7 +192,7 @@ class Booking(models.Model):
     purpose = models.ForeignKey(Purpose, on_delete=models.SET_NULL, null=True, blank=False, related_name='bookings')
     room = models.ForeignKey(Room, on_delete=models.SET_NULL, null=True, blank=True, related_name='bookings')
     vehicle = models.ForeignKey(Vehicle, on_delete=models.SET_NULL, null=True, blank=True, related_name='bookings')
-    destination_address = models.TextField(null=True, blank=True)
+    destination_address = models.CharField(max_length=255, null=True, blank=True)   
     requester_name = models.ForeignKey(
         settings.AUTH_USER_MODEL,
         on_delete=models.CASCADE,
@@ -201,22 +203,55 @@ class Booking(models.Model):
     start_time = models.DateTimeField()
     end_time = models.DateTimeField()
     description = models.TextField(null=False, blank=False)
-    destination_address = models.CharField(max_length=255, null=True, blank=True)   
     status = models.CharField(max_length=50, choices=STATUS_CHOICES, default='Pending')
 
     def clean(self):
+        """ 🔥 Validasi booking agar tidak bertabrakan """
         super().clean()
-        if self.resource_type == "Vehicle" and not self.destination_address:
-            raise ValidationError({"destination_address": "This field is required."})        
 
-    def clean(self):
-        super().clean()
+        if self.start_time >= self.end_time:
+            raise ValidationError({"start_time": "Start time harus lebih kecil dari end time."})
+
+        if self.start_time < now():
+            raise ValidationError({"start_time": "Tidak bisa memilih tanggal yang sudah lewat."})
+
         if self.resource_type == "Room" and not self.room:
             raise ValidationError({"room": "This field is required."})
+
         if self.resource_type == "Vehicle" and not self.vehicle:
             raise ValidationError({"vehicle": "This field is required."})
+
+        if self.resource_type == "Vehicle" and not self.destination_address:
+            raise ValidationError({"destination_address": "This field is required."})
+
         if not self.description:
             raise ValidationError({"description": "This field is required."})
+
+        # Cek karik iha rezerva nebe soke malu
+        overlapping_bookings = Booking.objects.filter(
+            Q(start_time__lt=self.end_time) &  # Rezerva seluk komesa antes rezerva foun kompletu
+            Q(end_time__gt=self.start_time) &  # Rezerva seluk kompleta depois de rezerva foun komesa
+            ~Q(status__in=['Rejected', 'Cancelled'])  # Esklui rezerva nebe rejeita/kansela
+        )
+
+        if self.resource_type == "Room" and self.room:
+            room_overlap = overlapping_bookings.filter(room=self.room).exclude(id=self.id)
+            if room_overlap.exists():
+                raise ValidationError({
+                    "room": f"Sala '{self.room.name}' srezerva ona husi {room_overlap.first().start_time.strftime('%d-%m-%Y %H:%M')} to'o {room_overlap.first().end_time.strftime('%d-%m-%Y %H:%M')}. Favor hili oras seluk!"
+                })
+
+        elif self.resource_type == "Vehicle" and self.vehicle:
+            vehicle_overlap = overlapping_bookings.filter(vehicle=self.vehicle).exclude(id=self.id)
+            if vehicle_overlap.exists():
+                raise ValidationError({
+                    "vehicle": f"Kareta '{self.vehicle.name}' rezerva ona husi {vehicle_overlap.first().start_time.strftime('%d-%m-%Y %H:%M')} to'o {vehicle_overlap.first().end_time.strftime('%d-%m-%Y %H:%M')}. Favor hili oras seluk!"
+                })
+
+    def save(self, *args, **kwargs):
+        """ 🔥 Pastikan validasi dijalankan sebelum menyimpan booking """
+        self.clean()
+        super().save(*args, **kwargs)
 
 class FCMToken(models.Model):
     user = models.ForeignKey(CustomUser, on_delete=models.CASCADE, null=True, blank=False, related_name='fcm_tokens')

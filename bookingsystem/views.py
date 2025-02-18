@@ -111,7 +111,7 @@ class ExecutiveMeetingViewSet(viewsets.ModelViewSet):
 
     def perform_create(self, serializer):
         """
-        Pastikan `purpose` tidak kosong dan valid sebelum menyimpan data.
+        Asegura katak `objetivu` la mamuk no válidu molok rai dadus.
         """
         validated_data = serializer.validated_data
 

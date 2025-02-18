@@ -24,7 +24,7 @@ class CustomUserChangeForm(forms.ModelForm):
         role = self.cleaned_data.get('role')
 
         if role != 'driver' and not departement:
-            raise forms.ValidationError("Departement wajib diisi untuk user non-Driver!")
+            raise forms.ValidationError("Department is required for non-Driver users!")
 
         return departement
 
@@ -110,44 +110,15 @@ class BookingAdmin(admin.ModelAdmin):
             kwargs["queryset"] = CustomUser.objects.exclude(role="driver")
         return super().formfield_for_foreignkey(db_field, request, **kwargs)
 
-    def get_fields(self, request, obj=None):
-        fields = super().get_fields(request, obj)
-
-        def get_fields(self, request, obj=None):
-            fields = super().get_fields(request, obj)
-
-            if 'description' not in fields:
-                fields.append('description')
-
-            return fields
-
-            if 'description' not in fields:
-              fields.append('description')
-
-        return fields
-
     def save_model(self, request, obj, form, change):
+        """ Asegura katak validasaun bolu antes rai """
         try:
             obj.clean()
             super().save_model(request, obj, form, change)
         except ValidationError as e:
             form.add_error(None, e)
 
-    def clean(self):
-        cleaned_data = super().clean()
-        resource_type = cleaned_data.get("resource_type")
-        room = cleaned_data.get("room")
-        vehicle = cleaned_data.get("vehicle")
-
-        if resource_type == "Room" and not room:
-            raise ValidationError({"room": "This field is required."})
-        if resource_type == "Vehicle" and not vehicle:
-            raise ValidationError({"vehicle": "This field is required."})
-
-        return cleaned_data
-
 admin.site.register(Booking, BookingAdmin)
-
 
 @admin.register(ExecutiveMeeting)
 class ExecutiveMeetingAdmin(admin.ModelAdmin):
@@ -164,9 +135,9 @@ class ExecutiveMeetingAdmin(admin.ModelAdmin):
 
     def formfield_for_manytomany(self, db_field, request, **kwargs):
         """
-        🔥 Memfilter daftar user di Django Admin
-        - `participants_users` → hanya Staff
-        - `substitute_executive` → hanya Director & Department Chief
+        Filtra lista utilizadór sira iha Django Admin
+        - `partisipante_utilizadór sira` → Funsionáriu de'it
+        - `substitute_ezekutivu` → Diretór & Xefe Departamentu de'it
         """
         if db_field.name == "participants_users":
             kwargs["queryset"] = CustomUser.objects.filter(role=UserRoles.STAFF.value)  
